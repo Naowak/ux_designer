@@ -1,6 +1,5 @@
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-
 def rounded_rect(size, radius, color) :
     img = Image.new('RGBA', size, (255, 255, 255, 0))
     draw = ImageDraw.Draw(img)
@@ -39,7 +38,7 @@ def rounded_rect(size, radius, color) :
     return img
 
 
-def ux_area(size, corner_radius, color, coef_img=0.9, diff_light=30, diff_dark=30, gaussian_radius=5) :
+def ux_area(content, color, size=(300, 300), corner_radius=120, dist=15, diff_light=10, diff_dark=20, gaussian_radius=10) :
 
     def fit_bg(img, bg, anchor, color) :
         color = tuple(list(color[:3]) + [0])
@@ -65,20 +64,23 @@ def ux_area(size, corner_radius, color, coef_img=0.9, diff_light=30, diff_dark=3
     color_dark = tuple([c - diff_dark for c in color[:3]] + [255])
 
     # create imgs to paste
-    size_rounded_rect = tuple((int(coef_img * s) for s in size))
+    size_rounded_rect = tuple(s - 4*dist for s in size)
 
     img_mid = rounded_rect(size_rounded_rect, corner_radius, color)
     img_light = rounded_rect(size_rounded_rect, corner_radius, color_light)
     img_dark = rounded_rect(size_rounded_rect, corner_radius, color_dark)
 
     # compute translation
-    transfer = (1 - coef_img)/4
-    translation = (int(transfer * size[0]), int(transfer * size[1]))
+    # transfer = (1 - coef_img)/4
+    # translation = (int(transfer * size[0]), int(transfer * size[1]))
 
     # compute pos
-    pos_light = translation
-    pos_dark = (translation[0]*3, translation[1]*3)
-    pos_mid = (translation[0]*2, translation[1]*2)
+    # pos_light = translation
+    # pos_dark = (translation[0]*3, translation[1]*3)
+    # pos_mid = (translation[0]*2, translation[1]*2)
+    pos_light = (dist, dist)
+    pos_mid = (dist*2, dist*2)
+    pos_dark = (dist*3, dist*3)
 
     # create background
     background = Image.new('RGBA', size, color)
@@ -105,5 +107,5 @@ def ux_area(size, corner_radius, color, coef_img=0.9, diff_light=30, diff_dark=3
 
 
 if __name__ == '__main__' :
-    img = ux_area(size=(200, 70), corner_radius=20, color=(28, 28, 80, 255))
+    img = ux_area(0, color=(220, 220, 220, 255))
     img.save('test.png')
