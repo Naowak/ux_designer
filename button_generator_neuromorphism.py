@@ -46,7 +46,7 @@ def rounded_rect(size, radius, color) :
     return img
 
 
-def ux_area(color, path, size=(300, 300), corner_radius=120, dist=15, diff_light=10, diff_dark=20, gaussian_radius=10) :
+def ux_area(path, color=(180, 180, 180, 255), size=(300, 300), corner_radius=120, dist=15, diff_light=10, diff_dark=20, gaussian_radius=10) :
 
     def fit_bg(img, bg, anchor, color) :
         color = tuple(list(color[:3]) + [0])
@@ -72,16 +72,16 @@ def ux_area(color, path, size=(300, 300), corner_radius=120, dist=15, diff_light
     color_dark = tuple([c - diff_dark for c in color[:3]] + [255])
 
     # create imgs to paste
-    size_rounded_rect = tuple(s - 4*dist for s in size)
+    size_rounded_rect = tuple(s - 6*dist for s in size)
 
     img_mid = rounded_rect(size_rounded_rect, corner_radius, color)
     img_light = rounded_rect(size_rounded_rect, corner_radius, color_light)
     img_dark = rounded_rect(size_rounded_rect, corner_radius, color_dark)
 
     # compute pos
-    pos_light = (dist, dist)
-    pos_mid = (dist*2, dist*2)
-    pos_dark = (dist*3, dist*3)
+    pos_light = (dist*2, dist*2)
+    pos_mid = (dist*3, dist*3)
+    pos_dark = (dist*4, dist*4)
 
     # create background
     background = Image.new('RGBA', size, color)
@@ -109,7 +109,6 @@ def ux_area(color, path, size=(300, 300), corner_radius=120, dist=15, diff_light
 class MyViewApp(App) :
 
     path_current_img = './tmp/current_img.png'
-    default_color = (180, 60, 60, 255)
 
     def build(self) :
 
@@ -117,63 +116,67 @@ class MyViewApp(App) :
             instance.rect.pos = instance.pos
             instance.rect.size = instance.size
 
-        def init_display(self, color) :
-            ux_area(color, self.path_current_img)
+        def init_display(self) :
+            kwargs = self.retrieve_params()
+            ux_area(self.path_current_img, **kwargs)
+            
+            color = kwargs['color']
             with self.display_layout.canvas.before :
                 Color(rgba=(color[0]/255, color[1]/255, color[2]/255, color[3]/255))
                 self.display_layout.rect = Rectangle(size=self.display_layout.size,
                                                      pos=self.display_layout.size)
 
-        # display : left side of window
-        self.display_layout = BoxLayout()
-        init_display(self, self.default_color)
-        self.display_layout.bind(pos=update_rect, size=update_rect)
-
-        self.image_display = ImageDisplay(source=self.path_current_img)
-        self.display_layout.add_widget(self.image_display)
-        
         # config : right side of window
         # size
         self.label_size_horizontal = Label(text='Size horizontal')
-        self.textinput_size_horizontal = TextInput(text='600', multiline=False)
+        self.slider_size_horizontal = Slider(min=50, max=800, value=200)
+        self.slider_size_horizontal.bind(value=lambda x, y: self.update_display())
 
         self.label_size_vertical = Label(text='Size vertical')
-        self.textinput_size_vertical = TextInput(text='300', multiline=False)
+        self.slider_size_vertical = Slider(min=50, max=800, value=200)
+        self.slider_size_vertical.bind(value=lambda x, y: self.update_display())
 
         # color
         self.label_color_red = Label(text="Red")
         self.slider_color_red = Slider(min=0, max=255, value=65)
-        self.slider_color_red.bind(value=self.on_red_change)
+        self.slider_color_red.bind(value=lambda x, y: self.update_display())
 
         self.label_color_green = Label(text="Green")
         self.slider_color_green = Slider(min=0, max=255, value=65)
+        self.slider_color_green.bind(value=lambda x, y: self.update_display())
 
         self.label_color_blue = Label(text="Blue")
         self.slider_color_blue = Slider(min=0, max=255, value=65)
+        self.slider_color_blue.bind(value=lambda x, y: self.update_display())
 
         # diff color
         self.label_color_diff_light = Label(text="Difference with light color")
         self.slider_color_diff_light = Slider(min=0, max=255, value=65)
+        self.slider_color_diff_light.bind(value=lambda x, y: self.update_display())
 
         self.label_color_diff_dark = Label(text="Difference with dark color")
         self.slider_color_diff_dark = Slider(min=0, max=255, value=65)
+        self.slider_color_diff_dark.bind(value=lambda x, y: self.update_display())
 
         # dist
         self.label_distance = Label(text="Distance")
-        self.slider_distance = Slider(min=0, max=50, value=15)
+        self.slider_distance = Slider(min=0, max=100, value=15)
+        self.slider_distance.bind(value=lambda x, y: self.update_display())
 
         # radius
         self.label_corner_radius = Label(text="Corner radius")
-        self.slider_corner_radius = Slider(min=0, max=300, value=30)
+        self.slider_corner_radius = Slider(min=0, max=400, value=30)
+        self.slider_corner_radius.bind(value=lambda x, y: self.update_display())
 
         self.label_gaussian_radius = Label(text="Gaussian radius")
         self.slider_gaussian_radius = Slider(min=0, max=30, value=10)
+        self.slider_gaussian_radius.bind(value=lambda x, y: self.update_display())
 
         self.config_layout = BoxLayout(orientation='vertical')
         self.config_layout.add_widget(self.label_size_horizontal)
-        self.config_layout.add_widget(self.textinput_size_horizontal)
+        self.config_layout.add_widget(self.slider_size_horizontal)
         self.config_layout.add_widget(self.label_size_vertical)
-        self.config_layout.add_widget(self.textinput_size_vertical)
+        self.config_layout.add_widget(self.slider_size_vertical)
         self.config_layout.add_widget(self.label_color_red)
         self.config_layout.add_widget(self.slider_color_red)
         self.config_layout.add_widget(self.label_color_green)
@@ -191,6 +194,16 @@ class MyViewApp(App) :
         self.config_layout.add_widget(self.label_gaussian_radius)
         self.config_layout.add_widget(self.slider_gaussian_radius)
 
+
+        # display : left side of window
+        self.display_layout = BoxLayout()
+        init_display(self)
+        self.display_layout.bind(pos=update_rect, size=update_rect)
+
+        self.image_display = ImageDisplay(source=self.path_current_img)
+        self.display_layout.add_widget(self.image_display)
+
+
         # main layout
         self.main_layout = GridLayout(cols=2)
         self.main_layout.add_widget(self.display_layout)
@@ -198,20 +211,35 @@ class MyViewApp(App) :
 
         return self.main_layout
 
-    def update_display(self, color) :
-        ux_area(color, self.path_current_img)
+    def update_display(self):
+        # compute the image
+        kwargs = self.retrieve_params()
+        ux_area(self.path_current_img, **kwargs)
 
+        # update the display
         self.display_layout.canvas.after.clear()
+        color = kwargs['color']
         with self.display_layout.canvas.before :
             Color(color[0]/255, color[1]/255, color[2]/255, color[3]/255)
             Rectangle(pos=self.display_layout.pos, size=self.display_layout.size)      
 
         self.image_display.reload()
 
-    def on_red_change(self, instance, value) :
-        color = (int(value), 60, 60, 255)
-        self.update_display(color)
-
+    def retrieve_params(self):
+        color = (int(self.slider_color_red.value),
+                 int(self.slider_color_green.value),
+                 int(self.slider_color_blue.value),
+                 255)
+        size = (int(self.slider_size_horizontal.value),
+                int(self.slider_size_vertical.value))
+        params = {'color' : color,
+                  'size' : size,
+                  'dist' : int(self.slider_distance.value),
+                  'corner_radius' : int(self.slider_corner_radius.value),
+                  'diff_light': int(self.slider_color_diff_light.value),
+                  'diff_dark' : int(self.slider_color_diff_dark.value),
+                  'gaussian_radius' : int(self.slider_gaussian_radius.value)}
+        return params
     
 
 
