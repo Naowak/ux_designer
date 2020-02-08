@@ -72,16 +72,17 @@ def ux_area(path, color=(180, 180, 180, 255), size=(300, 300), corner_radius=120
     color_dark = tuple([c - diff_dark for c in color[:3]] + [255])
 
     # create imgs to paste
-    size_rounded_rect = tuple(s - 6*dist for s in size)
+    size_rounded_rect = tuple(s - 2*dist - 6*gaussian_radius for s in size)
+    size_rounded_rect = tuple(s if s > 0 else 0 for s in size_rounded_rect)
 
     img_mid = rounded_rect(size_rounded_rect, corner_radius, color)
     img_light = rounded_rect(size_rounded_rect, corner_radius, color_light)
     img_dark = rounded_rect(size_rounded_rect, corner_radius, color_dark)
 
     # compute pos
-    pos_light = (dist*2, dist*2)
-    pos_mid = (dist*3, dist*3)
-    pos_dark = (dist*4, dist*4)
+    pos_light = (4*gaussian_radius, 4*gaussian_radius)
+    pos_mid = (4*gaussian_radius + dist, 4*gaussian_radius + dist)
+    pos_dark = (4*gaussian_radius + 2*dist, 4*gaussian_radius + 2*dist)
 
     # create background
     background = Image.new('RGBA', size, color)
