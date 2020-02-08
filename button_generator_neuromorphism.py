@@ -1,5 +1,6 @@
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from kivy.app import App
+from kivy.graphics import Rectangle, Color
 from kivy.uix.image import Image as ImageDisplay
 from kivy.uix.slider import Slider
 from kivy.uix.label import Label
@@ -45,7 +46,7 @@ def rounded_rect(size, radius, color) :
     return img
 
 
-def ux_area(color, size=(300, 300), corner_radius=120, dist=15, diff_light=10, diff_dark=20, gaussian_radius=10) :
+def ux_area(color, path, size=(300, 300), corner_radius=120, dist=15, diff_light=10, diff_dark=20, gaussian_radius=10) :
 
     def fit_bg(img, bg, anchor, color) :
         color = tuple(list(color[:3]) + [0])
@@ -98,42 +99,73 @@ def ux_area(color, size=(300, 300), corner_radius=120, dist=15, diff_light=10, d
     background = paste_image(img_light, background, color_light)
     background = paste_image(img_dark, background, color_dark)
     background = paste_image(img_mid, background, color)
-    background.show()
+    # background.show()
+
+    background.save(path)
 
     return background
+
 
 class MyViewApp(App) :
 
     path_current_img = './tmp/current_img.png'
+    default_color = (180, 60, 60, 255)
 
     def build(self) :
-        # display : left side of window
-        self.image_display = ImageDisplay(source=self.path_current_img)
 
+        def update_rect(instance, value) :
+            instance.rect.pos = instance.pos
+            instance.rect.size = instance.size
+
+        def init_display(self, color) :
+            ux_area(color, self.path_current_img)
+            with self.display_layout.canvas.before :
+                Color(rgba=(color[0]/255, color[1]/255, color[2]/255, color[3]/255))
+                self.display_layout.rect = Rectangle(size=self.display_layout.size,
+                                                     pos=self.display_layout.size)
+
+        # display : left side of window
+        self.display_layout = BoxLayout()
+        init_display(self, self.default_color)
+        self.display_layout.bind(pos=update_rect, size=update_rect)
+
+        self.image_display = ImageDisplay(source=self.path_current_img)
+        self.display_layout.add_widget(self.image_display)
+        
         # config : right side of window
         # size
         self.label_size_horizontal = Label(text='Size horizontal')
         self.textinput_size_horizontal = TextInput(text='600', multiline=False)
+
         self.label_size_vertical = Label(text='Size vertical')
         self.textinput_size_vertical = TextInput(text='300', multiline=False)
+
         # color
         self.label_color_red = Label(text="Red")
         self.slider_color_red = Slider(min=0, max=255, value=65)
+        self.slider_color_red.bind(value=self.on_red_change)
+
         self.label_color_green = Label(text="Green")
         self.slider_color_green = Slider(min=0, max=255, value=65)
+
         self.label_color_blue = Label(text="Blue")
         self.slider_color_blue = Slider(min=0, max=255, value=65)
+
         # diff color
         self.label_color_diff_light = Label(text="Difference with light color")
         self.slider_color_diff_light = Slider(min=0, max=255, value=65)
+
         self.label_color_diff_dark = Label(text="Difference with dark color")
         self.slider_color_diff_dark = Slider(min=0, max=255, value=65)
+
         # dist
         self.label_distance = Label(text="Distance")
         self.slider_distance = Slider(min=0, max=50, value=15)
+
         # radius
         self.label_corner_radius = Label(text="Corner radius")
         self.slider_corner_radius = Slider(min=0, max=300, value=30)
+
         self.label_gaussian_radius = Label(text="Gaussian radius")
         self.slider_gaussian_radius = Slider(min=0, max=30, value=10)
 
@@ -161,17 +193,27 @@ class MyViewApp(App) :
 
         # main layout
         self.main_layout = GridLayout(cols=2)
-        self.main_layout.add_widget(self.image_display)
+        self.main_layout.add_widget(self.display_layout)
         self.main_layout.add_widget(self.config_layout)
 
         return self.main_layout
 
+    def update_display(self, color) :
+        ux_area(color, self.path_current_img)
 
+        self.display_layout.canvas.after.clear()
+        with self.display_layout.canvas.before :
+            Color(color[0]/255, color[1]/255, color[2]/255, color[3]/255)
+            Rectangle(pos=self.display_layout.pos, size=self.display_layout.size)      
 
+        self.image_display.reload()
+
+    def on_red_change(self, instance, value) :
+        color = (int(value), 60, 60, 255)
+        self.update_display(color)
+
+    
 
 
 if __name__ == '__main__' :
-    # img = ux_area(color=(220, 220, 220, 255))
-    # img.save('test.png')
-
     MyViewApp().run()
