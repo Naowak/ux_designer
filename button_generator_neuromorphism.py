@@ -1,4 +1,11 @@
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from kivy.app import App
+from kivy.uix.image import Image as ImageDisplay
+from kivy.uix.slider import Slider
+from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.boxlayout import BoxLayout
 
 def rounded_rect(size, radius, color) :
     img = Image.new('RGBA', size, (255, 255, 255, 0))
@@ -38,7 +45,7 @@ def rounded_rect(size, radius, color) :
     return img
 
 
-def ux_area(content, color, size=(300, 300), corner_radius=120, dist=15, diff_light=10, diff_dark=20, gaussian_radius=10) :
+def ux_area(color, size=(300, 300), corner_radius=120, dist=15, diff_light=10, diff_dark=20, gaussian_radius=10) :
 
     def fit_bg(img, bg, anchor, color) :
         color = tuple(list(color[:3]) + [0])
@@ -70,14 +77,7 @@ def ux_area(content, color, size=(300, 300), corner_radius=120, dist=15, diff_li
     img_light = rounded_rect(size_rounded_rect, corner_radius, color_light)
     img_dark = rounded_rect(size_rounded_rect, corner_radius, color_dark)
 
-    # compute translation
-    # transfer = (1 - coef_img)/4
-    # translation = (int(transfer * size[0]), int(transfer * size[1]))
-
     # compute pos
-    # pos_light = translation
-    # pos_dark = (translation[0]*3, translation[1]*3)
-    # pos_mid = (translation[0]*2, translation[1]*2)
     pos_light = (dist, dist)
     pos_mid = (dist*2, dist*2)
     pos_dark = (dist*3, dist*3)
@@ -102,10 +102,76 @@ def ux_area(content, color, size=(300, 300), corner_radius=120, dist=15, diff_li
 
     return background
 
+class MyViewApp(App) :
+
+    path_current_img = './tmp/current_img.png'
+
+    def build(self) :
+        # display : left side of window
+        self.image_display = ImageDisplay(source=self.path_current_img)
+
+        # config : right side of window
+        # size
+        self.label_size_horizontal = Label(text='Size horizontal')
+        self.textinput_size_horizontal = TextInput(text='600', multiline=False)
+        self.label_size_vertical = Label(text='Size vertical')
+        self.textinput_size_vertical = TextInput(text='300', multiline=False)
+        # color
+        self.label_color_red = Label(text="Red")
+        self.slider_color_red = Slider(min=0, max=255, value=65)
+        self.label_color_green = Label(text="Green")
+        self.slider_color_green = Slider(min=0, max=255, value=65)
+        self.label_color_blue = Label(text="Blue")
+        self.slider_color_blue = Slider(min=0, max=255, value=65)
+        # diff color
+        self.label_color_diff_light = Label(text="Difference with light color")
+        self.slider_color_diff_light = Slider(min=0, max=255, value=65)
+        self.label_color_diff_dark = Label(text="Difference with dark color")
+        self.slider_color_diff_dark = Slider(min=0, max=255, value=65)
+        # dist
+        self.label_distance = Label(text="Distance")
+        self.slider_distance = Slider(min=0, max=50, value=15)
+        # radius
+        self.label_corner_radius = Label(text="Corner radius")
+        self.slider_corner_radius = Slider(min=0, max=300, value=30)
+        self.label_gaussian_radius = Label(text="Gaussian radius")
+        self.slider_gaussian_radius = Slider(min=0, max=30, value=10)
+
+        self.config_layout = BoxLayout(orientation='vertical')
+        self.config_layout.add_widget(self.label_size_horizontal)
+        self.config_layout.add_widget(self.textinput_size_horizontal)
+        self.config_layout.add_widget(self.label_size_vertical)
+        self.config_layout.add_widget(self.textinput_size_vertical)
+        self.config_layout.add_widget(self.label_color_red)
+        self.config_layout.add_widget(self.slider_color_red)
+        self.config_layout.add_widget(self.label_color_green)
+        self.config_layout.add_widget(self.slider_color_green)
+        self.config_layout.add_widget(self.label_color_blue)
+        self.config_layout.add_widget(self.slider_color_blue)
+        self.config_layout.add_widget(self.label_color_diff_light)
+        self.config_layout.add_widget(self.slider_color_diff_light)
+        self.config_layout.add_widget(self.label_color_diff_dark)
+        self.config_layout.add_widget(self.slider_color_diff_dark)
+        self.config_layout.add_widget(self.label_distance)
+        self.config_layout.add_widget(self.slider_distance)
+        self.config_layout.add_widget(self.label_corner_radius)
+        self.config_layout.add_widget(self.slider_corner_radius)
+        self.config_layout.add_widget(self.label_gaussian_radius)
+        self.config_layout.add_widget(self.slider_gaussian_radius)
+
+        # main layout
+        self.main_layout = GridLayout(cols=2)
+        self.main_layout.add_widget(self.image_display)
+        self.main_layout.add_widget(self.config_layout)
+
+        return self.main_layout
+
 
 
 
 
 if __name__ == '__main__' :
-    img = ux_area(0, color=(220, 220, 220, 255))
-    img.save('test.png')
+    # img = ux_area(color=(220, 220, 220, 255))
+    # img.save('test.png')
+
+    MyViewApp().run()
