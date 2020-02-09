@@ -4,6 +4,7 @@ from kivy.graphics import Rectangle, Color
 from kivy.uix.image import Image as ImageDisplay
 from kivy.uix.slider import Slider
 from kivy.uix.label import Label
+from kivy.uix.checkbox import CheckBox
 from kivy.uix.textinput import TextInput
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -46,7 +47,7 @@ def rounded_rect(size, radius, color) :
     return img
 
 
-def ux_area(path, color=(180, 180, 180, 255), size=(300, 300), corner_radius=120, dist=15, diff_light=10, diff_dark=20, gaussian_radius=10) :
+def draw_button(path, pressed=False, color=(180, 180, 180, 255), size=(300, 300), corner_radius=120, dist=15, diff_light=10, diff_dark=20, gaussian_radius=10) :
 
     def fit_bg(img, bg, anchor, color) :
         color = tuple(list(color[:3]) + [0])
@@ -54,12 +55,10 @@ def ux_area(path, color=(180, 180, 180, 255), size=(300, 300), corner_radius=120
         new.paste(img, anchor, img)
         return new
 
-    def paste_image(img, bg, color) :
+    def paste_image(img, bg, mask) :
         # # Paste an image at the position anchor
-        color = tuple(list(color[:3]) + [0])
-
         add_img = Image.new('RGBA', bg.size, (255, 255, 255, 0))
-        add_img.paste(img, (0, 0), img)
+        add_img.paste(img, (0, 0), mask)
 
         final = Image.new('RGBA', bg.size, (255, 255, 255, 0))
         final = Image.alpha_composite(final, bg)
@@ -75,14 +74,20 @@ def ux_area(path, color=(180, 180, 180, 255), size=(300, 300), corner_radius=120
     size_rounded_rect = tuple(s - 2*dist - 6*gaussian_radius for s in size)
     size_rounded_rect = tuple(s if s > 0 else 0 for s in size_rounded_rect)
 
-    img_mid = rounded_rect(size_rounded_rect, corner_radius, color)
     img_light = rounded_rect(size_rounded_rect, corner_radius, color_light)
     img_dark = rounded_rect(size_rounded_rect, corner_radius, color_dark)
+    if not pressed :
+        img_mid = rounded_rect(size_rounded_rect, corner_radius, color)
+    elif pressed :
+        img_mid = rounded_rect(size_rounded_rect, corner_radius, color_dark)
+        img_inside = rounded_rect(size_rounded_rect, corner_radius, color)
 
     # compute pos
-    pos_light = (4*gaussian_radius, 4*gaussian_radius)
-    pos_mid = (4*gaussian_radius + dist, 4*gaussian_radius + dist)
-    pos_dark = (4*gaussian_radius + 2*dist, 4*gaussian_radius + 2*dist)
+    pos_light = (3*gaussian_radius, 3*gaussian_radius)
+    pos_mid = (3*gaussian_radius + dist, 3*gaussian_radius + dist)
+    pos_dark = (3*gaussian_radius + 2*dist, 3*gaussian_radius + 2*dist)
+    if pressed :
+        pos_inside = (3*gaussian_radius + 3*dist, 3*gaussian_radius + 3*dist)
 
     # create background
     background = Image.new('RGBA', size, color)
@@ -90,16 +95,24 @@ def ux_area(path, color=(180, 180, 180, 255), size=(300, 300), corner_radius=120
     # fit imgs to background
     img_light = fit_bg(img_light, background, pos_light, color_light)
     img_dark = fit_bg(img_dark, background, pos_dark, color_dark)
-    img_mid = fit_bg(img_mid, background, pos_mid, color)
+    if not pressed :
+        img_mid = fit_bg(img_mid, background, pos_mid, color)
+    elif pressed :
+        img_mid = fit_bg(img_mid, background, pos_mid, color_dark)
+        img_inside = fit_bg(img_inside, background, pos_inside, color)
 
     # apply gaussian filter
     img_light = img_light.filter(ImageFilter.GaussianBlur(radius=gaussian_radius))
     img_dark = img_dark.filter(ImageFilter.GaussianBlur(radius=gaussian_radius))
+    if pressed :
+        img_inside = img_inside.filter(ImageFilter.GaussianBlur(radius=gaussian_radius))
 
     # paste rounded rectangle
-    background = paste_image(img_light, background, color_light)
-    background = paste_image(img_dark, background, color_dark)
-    background = paste_image(img_mid, background, color)
+    background = paste_image(img_light, background, img_light)
+    background = paste_image(img_dark, background, img_dark)
+    background = paste_image(img_mid, background, img_mid)
+    if pressed :
+        background = paste_image(img_inside, background, img_mid)
     # background.show()
 
     background.save(path)
@@ -119,7 +132,7 @@ class MyViewApp(App) :
 
         def init_display(self) :
             kwargs = self.retrieve_params()
-            ux_area(self.path_current_img, **kwargs)
+            draw_button(self.path_current_img, **kwargs)
             
             color = kwargs['color']
             with self.display_layout.canvas.before :
@@ -128,7 +141,14 @@ class MyViewApp(App) :
                                                      pos=self.display_layout.size)
 
         # config : right side of window
+        # pressed or not
+        self.label_checkbox_pressed = Label(text="Button pressed")
+        self.checkbox_pressed = CheckBox()
+        self.checkbox_pressed.bind(active=lambda x, y: self.update_display())
         # size
+        # self.label_size = Label(text='Size configuration')
+        # self.label_size.font_size = '25dp'
+
         self.label_size_horizontal = Label(text='Size horizontal')
         self.slider_size_horizontal = Slider(min=50, max=800, value=200)
         self.slider_size_horizontal.bind(value=lambda x, y: self.update_display())
@@ -174,6 +194,9 @@ class MyViewApp(App) :
         self.slider_gaussian_radius.bind(value=lambda x, y: self.update_display())
 
         self.config_layout = BoxLayout(orientation='vertical')
+        self.config_layout.add_widget(self.label_checkbox_pressed)
+        self.config_layout.add_widget(self.checkbox_pressed)
+        # self.config_layout.add_widget(self.label_size)
         self.config_layout.add_widget(self.label_size_horizontal)
         self.config_layout.add_widget(self.slider_size_horizontal)
         self.config_layout.add_widget(self.label_size_vertical)
@@ -215,7 +238,7 @@ class MyViewApp(App) :
     def update_display(self):
         # compute the image
         kwargs = self.retrieve_params()
-        ux_area(self.path_current_img, **kwargs)
+        draw_button(self.path_current_img, **kwargs)
 
         # update the display
         self.display_layout.canvas.after.clear()
@@ -235,6 +258,7 @@ class MyViewApp(App) :
                 int(self.slider_size_vertical.value))
         params = {'color' : color,
                   'size' : size,
+                  'pressed' : self.checkbox_pressed.active,
                   'dist' : int(self.slider_distance.value),
                   'corner_radius' : int(self.slider_corner_radius.value),
                   'diff_light': int(self.slider_color_diff_light.value),
