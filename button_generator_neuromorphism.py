@@ -119,6 +119,35 @@ def draw_button(path, pressed=False, color=(180, 180, 180, 255), size=(300, 300)
 
     return background
 
+def ConfigLayout(BoxLayout):
+
+    def build(self, **kwargs):
+        super(ConfigLayout, self).__init__(**kwargs)
+
+    def add_slider(self, name, text, min, max, value, fct) :
+        # add a label and a slider to the view, make bind with fct
+        label = Label(text=text)
+        slider = Slider(min=min, max=max, value=value)
+        slider.bind(value=fct)
+        
+        self.__dict__['label_' + name] = label
+        self.__dict__['slider_' + name] = slider
+        
+        self.add_widget(label)
+        self.add_widget(slider)
+
+    def add_checkbox(self, name, text, fct) :
+        # add a label and a checkbox to the view, make bind with fct
+        label = Label(text=text)
+        checkbox = CheckBox()
+        checkbox.bind(active=fct)
+
+        self.__dict__['label_' + name] = label
+        self.__dict__['checkbox_' + name] = checkbox
+        
+        self.add_widget(label)
+        self.add_widget(checkbox)
+
 
 class MyViewApp(App) :
 
@@ -140,14 +169,26 @@ class MyViewApp(App) :
                 self.display_layout.rect = Rectangle(size=self.display_layout.size,
                                                      pos=self.display_layout.size)
 
+        self.config_layout = ConfigLayout(orientation='vertical')
+        self.config_layout.add_checkbox(name='pressed', 
+                                        text='Button pressed', 
+                                        fct=lambda x, y: self.update_display())
+
+
         # config : right side of window
         # pressed or not
-        self.label_checkbox_pressed = Label(text="Button pressed")
-        self.checkbox_pressed = CheckBox()
-        self.checkbox_pressed.bind(active=lambda x, y: self.update_display())
+        # self.label_checkbox_pressed = Label(text="Button pressed")
+        # self.checkbox_pressed = CheckBox()
+        # self.checkbox_pressed.bind(active=lambda x, y: self.update_display())
+
+
+
+
         # size
         # self.label_size = Label(text='Size configuration')
         # self.label_size.font_size = '25dp'
+
+        self.config_layout.add_slider(name='horizontal')
 
         self.label_size_horizontal = Label(text='Size horizontal')
         self.slider_size_horizontal = Slider(min=50, max=800, value=200)
